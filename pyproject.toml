@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bpnet-distill"
+version = "0.1.0"
+description = "Distillation trainer for profile+count models (BPNet-style)."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+    { name = "Your Name", email = "you@example.com" },
+]
+dependencies = [
+    "torch>=1.12",
+    "numpy>=1.20",
+]
+
+[project.optional-dependencies]
+# Dependencies only needed if you use the default `fit_generator` path, which
+# relies on BPNet_strand_merged_umap.Model from your existing project. List
+# here anything that module needs but this package does not import directly.
+bpnet = []
+
+dev = [
+    "pytest>=7",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["bpnet_distill*"]
+exclude = ["tests*"]
