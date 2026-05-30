@@ -64,6 +64,101 @@ trainer.fit(
 )
 ```
 
+## ChromBPNet finetuning
+
+ChromBPNet models use the same two-head profile/count contract as BPNet-style
+models:
+
+```python
+profile_logits, log_counts = model(X)
+```
+
+Use `finetune_chrombpnet` when you want to continue training a full
+ChromBPNet model, a ChromBPNet-initialized student, or a distilled student on
+observed profile counts:
+
+```python
+import torch
+from bpnet_distill import FineTuneConfig, finetune_chrombpnet, set_trainable
+
+# Optional: freeze a backbone and finetune only profile/count heads. Prefixes
+# are matched against `model.named_parameters()`.
+set_trainable(
+    model,
+    freeze=[""],
+    unfreeze=["profile_head", "count_head"],
+)
+
+optimizer = torch.optim.AdamW(
+    [p for p in model.parameters() if p.requires_grad],
+    lr=1e-4,
+    weight_decay=1e-4,
+)
+
+metrics = finetune_chrombpnet(
+    model=model,
+    train_loader=train_loader,  # yields (X, profile_counts[, log_counts, mask])
+    val_loader=val_loader,
+    optimizer=optimizer,
+    device=torch.device("cuda"),
+    config=FineTuneConfig(
+        max_epochs=20,
+        alpha=0.5,
+        validation_iter=200,
+        early_stop_epochs=5,
+        checkpoint_path="checkpoints/chrombpnet_finetuned.pt",
+    ),
+)
+```
+
+If a batch does not include explicit log-count targets, the finetuning loss
+derives them as `log(total_profile_counts + 1)`. Dictionary batches are also
+supported with sequence keys like `X`/`sequence` and profile keys like
+`profile_counts`/`counts`.
+
+## QTL and GWAS benchmarks
+
+The ChromBPNet preprint benchmarks variant predictions with allelic log-count
+effects, profile divergence, QTL classification/correlation, and enrichment
+among fine-mapped GWAS variants. This package exposes those pieces as small
+utilities so the same workflow can be applied to ChromBPNet or distilled
+BPNet-style models.
+
+```python
+from bpnet_distill import (
+    VariantExample,
+    effect_correlation,
+    gwas_enrichment_by_threshold,
+    qtl_classification_metrics,
+    score_variant_effects,
+)
+
+variants = [
+    VariantExample(
+        variant_id="chr1:1000:A:G",
+        ref_sequence=ref_one_hot,  # shape (4, length)
+        alt_sequence=alt_one_hot,  # shape (4, length)
+        label=1,                   # optional QTL/non-QTL label
+        observed_effect=0.42,       # optional QTL effect size
+        pip=0.76,                  # optional fine-mapping posterior
+        locus_id="trait_locus_1",
+    ),
+]
+
+rows = score_variant_effects(model, variants, torch.device("cuda"))
+qtl_metrics = qtl_classification_metrics(rows, score_key="abs_log_count_delta")
+effect_metrics = effect_correlation(rows, predicted_key="log_count_delta")
+gwas_enrichment = gwas_enrichment_by_threshold(
+    rows,
+    score_thresholds=(0.25, 0.5, 1.0),
+    pip_thresholds=(0.1, 0.5, 0.9),
+)
+```
+
+`score_variant_effects` returns `log_count_delta` (`alt - ref`),
+`abs_log_count_delta`, and `profile_jsd` for each variant while carrying
+through labels, observed effects, PIPs, and locus IDs when provided.
+
 ## Project layout
 
 ```
@@ -73,7 +168,10 @@ bpnet-distill/
 └── bpnet_distill/
     ├── __init__.py
     ├── augmentations.py
+    ├── batch_utils.py
+    ├── benchmarks.py
     ├── dataset.py
+    ├── finetune.py
     ├── generators.py
     ├── losses.py
     ├── teacher.py

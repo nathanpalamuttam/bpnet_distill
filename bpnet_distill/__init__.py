@@ -15,6 +15,18 @@ Data:
     ``fit_generator``.
     :func:`build_validation_arrays` — materialize a fixed validation set.
 
+ChromBPNet finetuning:
+    :func:`finetune_chrombpnet` — supervised finetuning loop for two-head
+    profile models.
+    :class:`FineTuneConfig` — finetuning configuration.
+
+Variant benchmarks:
+    :class:`VariantExample` — ref/alt sequence pair plus benchmark metadata.
+    :func:`score_variant_effects` — count/profile variant-effect scoring.
+    :func:`qtl_classification_metrics` — QTL AP/AUC benchmark.
+    :func:`effect_correlation` — observed vs predicted effect correlation.
+    :func:`gwas_enrichment_by_threshold` — fine-mapped GWAS enrichment.
+
 Augmentations (composable callables):
     :class:`Compose`, :class:`PointMutation`, :class:`StructuralVariation`,
     :class:`ReverseComplement`.
@@ -58,6 +70,20 @@ from .augmentations import (
     StructuralVariation,
 )
 from .dataset import DistillationDataset
+from .benchmarks import (
+    VariantExample,
+    effect_correlation,
+    gwas_enrichment_by_threshold,
+    qtl_classification_metrics,
+    score_variant_effects,
+)
+from .finetune import (
+    FineTuneConfig,
+    chrombpnet_supervised_loss,
+    evaluate_chrombpnet,
+    finetune_chrombpnet,
+    set_trainable,
+)
 from .generators import (
     TeacherDistillationGenerator,
     build_validation_arrays,
@@ -76,6 +102,18 @@ __all__ = [
     "DistillationDataset",
     "TeacherDistillationGenerator",
     "build_validation_arrays",
+    # ChromBPNet finetuning
+    "FineTuneConfig",
+    "chrombpnet_supervised_loss",
+    "evaluate_chrombpnet",
+    "finetune_chrombpnet",
+    "set_trainable",
+    # Variant benchmarks
+    "VariantExample",
+    "score_variant_effects",
+    "qtl_classification_metrics",
+    "effect_correlation",
+    "gwas_enrichment_by_threshold",
     # Augmentations
     "Augmentation",
     "Compose",
